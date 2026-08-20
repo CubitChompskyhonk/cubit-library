@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0c10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Cubit Library</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --panel: #12151c;
+      --card: #161b24;
+      --line: #2a3142;
+      --text: #eef1f6;
+      --mute: #8b93a7;
+      --accent: #5b8cff;
+      --green: #3dd68c;
+      --folder: #f5c542;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #0e1118;
+      flex-shrink: 0;
+    }
+    .logo {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 12px;
+    }
+    header h1 { font-size: 15px; font-weight: 650; flex: 1; }
+    header .hint { font-size: 11px; color: var(--mute); }
+    #crumbs {
+      padding: 8px 14px;
+      font-size: 12px;
+      color: var(--mute);
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      overflow-x: auto;
+      flex-shrink: 0;
+      background: #0c0f16;
+    }
+    #crumbs span { cursor: pointer; color: var(--accent); }
+    #crumbs span:last-child { color: var(--text); cursor: default; }
+    #list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      margin-bottom: 4px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .row:active, .row.open { background: var(--card); border-color: var(--line); }
+    .icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+      background: #1a2030;
+    }
+    .icon.folder { color: var(--folder); }
+    .icon.file { color: var(--accent); }
+    .meta { flex: 1; min-width: 0; }
+    .meta .name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta .sub { font-size: 11px; color: var(--mute); margin-top: 2px; }
+    .actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .actions button {
+      background: #1a2030; border: 1px solid var(--line); color: var(--text);
+      border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer;
+    }
+    .actions button.primary { border-color: var(--accent); color: var(--accent); }
+    #toolbar {
+      display: flex; gap: 8px; padding: 10px 12px;
+      border-top: 1px solid var(--line); background: #0e1118; flex-shrink: 0;
+    }
+    #toolbar button, #toolbar label {
+      flex: 1; text-align: center; padding: 12px 8px; border-radius: 10px;
+      border: 1px solid var(--line); background: var(--card); color: var(--text);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    #toolbar .up { color: var(--green); border-color: #2a4a3a; }
+    #toolbar input[type=file] { display: none; }
+    #status {
+      font-size: 11px; color: var(--mute); padding: 6px 14px 10px;
+      background: #0e1118; flex-shrink: 0;
+    }
+    .empty { text-align: center; color: var(--mute); padding: 40px 20px; font-size: 14px; }
+    .banner {
+      background: #0d2818; color: var(--green); font-size: 11px;
+      text-align: center; padding: 6px; flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">CUBIT LIBRARY · Company asset navigator · Founder ops</div>
+  <header>
+    <div class="logo">L</div>
+    <h1>Library</h1>
+    <div class="hint">Head Offices files</div>
+  </header>
+  <div id="crumbs"></div>
+  <div id="list"></div>
+  <div id="toolbar">
+    <button type="button" id="btn-home">Root</button>
+    <button type="button" id="btn-up">Up</button>
+    <label class="up">Upload<input type="file" id="file-in" multiple /></label>
+  </div>
+  <div id="status">Local company tree · Upload stores on this device · Drive links open when available</div>
+  <script>
+  // Company directory map (assimilated structure)
+  const TREE = {
+    name: 'Cubit Systems Inc. - Head Offices',
+    type: 'folder',
+    children: [
+      { name: '00 - Boardroom', type: 'folder', children: [
+        { name: 'Assimilation Register', type: 'doc', note: 'Doctrine · surface states', url: 'https://docs.google.com/document/d/1ZcpRaKKDda56h3vxrD9uysGb2cy-ee9PBubPpbFjFWY/edit' },
+        { name: 'Founder Review notes', type: 'doc', note: 'Internal' },
+        { name: 'Workday reports', type: 'folder', children: [
+          { name: 'Flagship APK report', type: 'doc', note: 'Boardroom' },
+          { name: 'Games milestone report', type: 'doc', note: 'Games' }
+        ]}
+      ]},
+      { name: '01 - Executive', type: 'folder', children: [
+        { name: 'Chief of Staff pulse', type: 'doc', note: 'Alex Rivera' },
+        { name: 'Operating formula', type: 'doc', note: 'run workday cadence' }
+      ]},
+      { name: '02 - Finance', type: 'folder', children: [
+        { name: 'Payment Path Ready', type: 'doc', note: 'Hard gate' },
+        { name: 'Stripe OS link', type: 'link', note: '$9.99', url: 'https://buy.stripe.com/eVqcN4dHRboV7Jm5576kg03' },
+        { name: 'Stripe Terminal Myth', type: 'link', note: '$2.99', url: 'https://buy.stripe.com/28EcN4fPZ64B4xagNP6kg04' }
+      ]},
+      { name: '03 - Accounting', type: 'folder', children: [
+        { name: 'SKU map', type: 'doc', note: 'OS-001 · GM-001 · GM-002' }
+      ]},
+      { name: '04 - IT', type: 'folder', children: [
+        { name: 'Extremity health', type: 'doc', note: 'GitHub · Netlify · Stripe' },
+        { name: 'Coinbase assimilation', type: 'doc', note: 'Not connected — outsider' }
+      ]},
+      { name: '05 - Product OS', type: 'folder', children: [
+        { name: 'cubit-head-offices-debug.apk', type: 'apk', note: 'v0.1.2 Founder channel', url: 'https://github.com/CubitChompskyhonk/cubit-os-apk/releases/download/v0.1.2-debug/cubit-head-offices-debug.apk' },
+        { name: 'Run Card', type: 'doc', note: 'Install instructions', url: 'https://docs.google.com/document/d/15otdpx7docU8uSolnawHsU5esi1DcYlRdi1ApbYWkyM/edit' },
+        { name: 'Release page', type: 'link', note: 'GitHub', url: 'https://github.com/CubitChompskyhonk/cubit-os-apk/releases' }
+      ]},
+      { name: '06 - Storefront', type: 'folder', children: [
+        { name: 'Main site', type: 'link', note: 'Netlify', url: 'https://cubitsystemsinc.netlify.app/' },
+        { name: 'Drop page', type: 'link', note: 'Zelda chest', url: 'https://cubitsystemsinc.netlify.app/drop.html' }
+      ]},
+      { name: '14 - Games', type: 'folder', children: [
+        { name: 'Terminal Myth', type: 'link', note: 'Live game', url: 'https://cubitsystemsinc.netlify.app/games/terminal-myth/' },
+        { name: 'Under the Cot', type: 'link', note: 'Live game', url: 'https://cubitsystemsinc.netlify.app/games/under-the-cot/' },
+        { name: 'Art Prompts', type: 'doc', note: 'External assets', url: 'https://docs.google.com/document/d/11Ij-uoSouPUjhor5sIgWxWtJN2MrpnnKAcXHCdE0Gz0/edit' },
+        { name: 'Founder Under the Cot', type: 'link', note: 'Pay waived', url: 'https://cubitsystemsinc.netlify.app/games/under-the-cot/?access=founder' }
+      ]},
+      { name: '99 - Uploads', type: 'folder', children: [], upload: true }
+    ]
+  };
+
+  let path = []; // array of names from root
+  let localUploads = JSON.parse(localStorage.getItem('cubit_library_uploads') || '[]');
+
+  function nodeAt() {
+    let n = TREE;
+    for (const name of path) {
+      n = (n.children || []).find(c => c.name === name);
+      if (!n) return TREE;
+    }
+    return n;
+  }
+
+  function crumbs() {
+    const el = document.getElementById('crumbs');
+    const parts = ['Root', ...path];
+    el.innerHTML = parts.map((p, i) => {
+      if (i === parts.length - 1) return `<span>${p}</span>`;
+      return `<span data-i="${i}">${p}</span> / `;
+    }).join('');
+    el.querySelectorAll('span[data-i]').forEach(s => {
+      s.onclick = () => {
+        const i = +s.getAttribute('data-i');
+        path = i === 0 ? [] : path.slice(0, i);
+        render();
+      };
+    });
+  }
+
+  function iconFor(item) {
+    if (item.type === 'folder') return '📁';
+    if (item.type === 'apk') return '📦';
+    if (item.type === 'link') return '🔗';
+    return '📄';
+  }
+
+  function render() {
+    crumbs();
+    const n = nodeAt();
+    let children = (n.children || []).slice();
+    if (n.upload || n.name === '99 - Uploads') {
+      children = children.concat(localUploads.map(u => ({ ...u, local: true })));
+    }
+    const list = document.getElementById('list');
+    if (!children.length) {
+      list.innerHTML = '<div class="empty">Empty folder. Use Upload to add files on this device.</div>';
+      return;
+    }
+    list.innerHTML = children.map((item, idx) => {
+      const isFolder = item.type === 'folder';
+      const canOpen = isFolder || item.url;
+      return `<div class="row" data-idx="${idx}">
+        <div class="icon ${isFolder ? 'folder' : 'file'}">${iconFor(item)}</div>
+        <div class="meta">
+          <div class="name">${item.name}</div>
+          <div class="sub">${item.note || item.type}${item.local ? ' · on device' : ''}</div>
+        </div>
+        <div class="actions">
+          ${item.url ? `<button class="primary" data-act="open" data-idx="${idx}">Open</button>` : ''}
+          ${item.local ? `<button data-act="del" data-idx="${idx}">Remove</button>` : ''}
+          ${isFolder ? `<button data-act="enter" data-idx="${idx}">Open</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('.row').forEach(row => {
+      const idx = +row.getAttribute('data-idx');
+      const item = children[idx];
+      row.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        if (item.type === 'folder') {
+          path.push(item.name);
+          render();
+        } else if (item.url) window.open(item.url, '_blank');
+      });
+    });
+    list.querySelectorAll('button[data-act]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = +btn.getAttribute('data-idx');
+        const item = children[idx];
+        const act = btn.getAttribute('data-act');
+        if (act === 'enter') { path.push(item.name); render(); }
+        if (act === 'open' && item.url) window.open(item.url, '_blank');
+        if (act === 'del' && item.local) {
+          localUploads = localUploads.filter(u => u.name !== item.name);
+          localStorage.setItem('cubit_library_uploads', JSON.stringify(localUploads));
+          render();
+        }
+      });
+    });
+    document.getElementById('status').textContent =
+      path.join(' / ') || 'Root · Cubit company tree · Uploads save on device';
+  }
+
+  document.getElementById('btn-home').onclick = () => { path = []; render(); };
+  document.getElementById('btn-up').onclick = () => { path.pop(); render(); };
+  document.getElementById('file-in').onchange = (e) => {
+    const files = [...e.target.files];
+    files.forEach(f => {
+      localUploads.push({ name: f.name, type: 'file', note: Math.round(f.size/1024) + ' KB', local: true });
+    });
+    localStorage.setItem('cubit_library_uploads', JSON.stringify(localUploads));
+    // Navigate to uploads folder
+    path = ['99 - Uploads'];
+    render();
+    e.target.value = '';
+  };
+
+  render();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  </script>
+</body>
+</html>
